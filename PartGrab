@@ -1,0 +1,87 @@
+local UserInputService = game:GetService("UserInputService")
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+local function findAllParts()
+    local parts = {}
+    
+    local function searchFolder(folder)
+        for _, child in ipairs(folder:GetChildren()) do
+            if child:IsA("BasePart") and child.Name == "Part" then
+                table.insert(parts, child)
+            elseif child:IsA("Folder") or child:IsA("Model") then
+                searchFolder(child)
+            end
+        end
+    end
+    
+    searchFolder(workspace)
+    return parts
+end
+
+local function findClosestPart()
+    local allParts = findAllParts()
+    local closestPart = nil
+    local closestDistance = math.huge
+    
+    for _, part in ipairs(allParts) do
+        local distance = (part.Position - humanoidRootPart.Position).Magnitude
+        if distance < closestDistance then
+            closestDistance = distance
+            closestPart = part
+        end
+    end
+    
+    return closestPart
+end
+
+local function pickupPart()
+    local targetPart = findClosestPart()
+    
+    if targetPart then
+        targetPart.CanCollide = true
+        targetPart.Anchored = false
+        
+        targetPart.CFrame = humanoidRootPart.CFrame * CFrame.new(0, 0, 4)
+        
+        local motor = Instance.new("Motor6D")
+        motor.Part0 = humanoidRootPart
+        motor.Part1 = targetPart
+        motor.C0 = CFrame.new(0, 0, 4)
+        motor.C1 = CFrame.new(0, 0, 0)
+        motor.Parent = humanoidRootPart
+        
+        targetPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+        targetPart.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+        
+        print("Podniosles parta.")
+    else
+        warn("Nie znaleziono zadnego parta!")
+    end
+end
+
+local function dropPart()
+    for _, child in ipairs(humanoidRootPart:GetChildren()) do
+        if child:IsA("Motor6D") then
+            local part = child.Part1
+            child:Destroy()
+            if part then
+                part.Anchored = true
+                print("Upuszczono!")
+            end
+        end
+    end
+end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.KeyCode == Enum.KeyCode.E then
+        pickupPart()
+    elseif input.KeyCode == Enum.KeyCode.Q then
+        dropPart()
+    end
+end)
+
+print("Załadowano poprawnie (chyba nwm) Kliknij E żeby złapać i Q żeby przestać.")
